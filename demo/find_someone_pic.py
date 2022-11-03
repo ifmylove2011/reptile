@@ -6,10 +6,11 @@ import json
 import re
 import time
 import socket
+import os
 
 socket.setdefaulttimeout(2)
 
-someone = "刘亦菲"
+someone = "刘涛"
 someone_url_encode = parse.quote(someone)
 
 root_url_bing = "https://cn.bing.com"
@@ -19,9 +20,9 @@ root_url_baidu = "https://image.baidu.com"
 root_img_url_baiduj = "https://image.baidu.com/search/index?tn=baiduimage&ps=1&ct=201326592&lm=-1&cl=2&nc=1&ie=utf-8&word=" + someone_url_encode
 
 # print(root_img_url_bing)
-img_dest_dir = "E:\\studying\\img_lyf\\"
+img_dest_dir = "E:\\studying\\img_lt\\"
 data_count = 0
-need_count = 5000
+need_count = 1000
 
 head = {
     'Connection': 'keep-alive',
@@ -49,61 +50,25 @@ def fetch_bing_pic(img_hover_url):
         # print(tag)
         img_detail = tag.attrs['m']
         img_detail_json = json.loads(img_detail)
-        print(img_detail_json)
+        # print(img_detail_json)
         img_detail_url = img_detail_json['murl']
         img_file_name = img_detail_json['cid']
-        print(img_detail_url)
-        time.sleep(0.3)
+        img_dest_path = os.path.join(img_dest_dir,img_file_name + ".jpg")
         try:
-            urlretrieve(img_detail_url, img_dest_dir + img_file_name + ".jpg")
+            if os.path.exists(img_dest_path):
+                data_count = data_count + 1
+                continue
+            time.sleep(0.3)
+            urlretrieve(img_detail_url, img_dest_path)
             data_count = data_count + 1
-            print()
+            # print()
         except Exception:
+            print(img_detail_url)
             continue
         if data_count > need_count:
-            break
+            exit(0)
     fetch_bing_pic(next_url)
 
-
-base_encode = {
-    '_z2C$q': ':',
-    '_z&e3B': '.',
-    'AzdH3F': '/',
-    'w': 'a',
-    'k': 'b',
-    'v': 'c',
-    '1': 'd',
-    'j': 'e',
-    'u': 'f',
-    '2': 'g',
-    'i': 'h',
-    't': 'i',
-    '3': 'j',
-    'h': 'k',
-    's': 'l',
-    '4': 'm',
-    'g': 'n',
-    '5': 'o',
-    'r': 'p',
-    'q': 'q',
-    '6': 'r',
-    'f': 's',
-    'p': 't',
-    '7': 'u',
-    'e': 'v',
-    'o': 'w',
-    '8': '1',
-    'd': '2',
-    'n': '3',
-    '9': '4',
-    'c': '5',
-    'm': '6',
-    '0': '7',
-    'b': '8',
-    'l': '9',
-    'a': '0',
-    '-': '-'
-}
 
 head = {
     'Connection': 'keep-alive',
@@ -121,7 +86,7 @@ def fetch_baidu_pic(img_hover_url):
     print(img_hover_url)
     req = request.Request(img_hover_url, headers=head)
     responese = request.urlopen(req)
-    html = responese.read().decode('utf-8')
+    html = responese.read().decode('ISO-8859-1')
     img_total_json = json.loads(html)
     for data in img_total_json['data']:
         file_suffix = "jpg"
@@ -132,35 +97,23 @@ def fetch_baidu_pic(img_hover_url):
             file_suffix = data['type']
         if 'replaceUrl' in data:
             img_detail_url = data['replaceUrl'][0]['ObjURL']
-            print(img_detail_url)
+            img_dest_path = os.path.join(img_dest_dir, img_file_name + "." + file_suffix)
             try:
+                if os.path.exists(img_dest_path):
+                    data_count = data_count + 1
+                    continue
                 time.sleep(0.3)
-                urlretrieve(img_detail_url, img_dest_dir + img_file_name + "." + file_suffix)
+                urlretrieve(img_detail_url, img_dest_path)
                 data_count = data_count + 1
-                print()
+                # print()
             except Exception:
+                print(img_detail_url)
                 continue
             if data_count > need_count:
+                exit(0)
                 break
     next_url = get_json_url(data_count, 60)
     fetch_baidu_pic(next_url)
-
-
-def parse_baidu_objURL(objurl):
-    if '_z2C$q' in objurl:
-        objurl = objurl.replace('_z2C$q', ':')
-    if '_z&e3B' in objurl:
-        objurl = objurl.replace('_z&e3B', '.')
-    if 'AzdH3F' in objurl:
-        objurl = objurl.replace('AzdH3F', '/')
-
-    res = ''
-    for s in objurl:
-        if s in base_encode:
-            res += base_encode[s]
-        else:
-            res += s
-    return res
 
 
 def get_json_url(current_num, page_num):
@@ -171,7 +124,8 @@ def get_json_url(current_num, page_num):
     result = "rn=" + rn + "&pn=" + pn
     return request_baidu_json_url + result
 
-
-# fetch_bing_pic(root_img_url_bing)
-fetch_baidu_pic(get_json_url(0, 60))
+if not os.path.exists(img_dest_dir):
+    os.mkdir(img_dest_dir)
+fetch_bing_pic(root_img_url_bing)
+# fetch_baidu_pic(get_json_url(0, 60))
 # print(get_json_url(0, 60))
